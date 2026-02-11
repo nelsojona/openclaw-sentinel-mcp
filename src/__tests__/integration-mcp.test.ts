@@ -180,7 +180,12 @@ describe('MCP Server Integration', () => {
         name: 'Updated Name',
         action: 'allow',
       },
-    })) as { content: Array<{ type: string; text: string }> };
+    })) as { content: Array<{ type: string; text: string }>; isError?: boolean };
+
+    // Check for error response
+    if (updateResponse.isError) {
+      throw new Error(`Update failed: ${updateResponse.content[0].text}`);
+    }
 
     const updatedRule = JSON.parse(updateResponse.content[0].text);
     expect(updatedRule.id).toBe(ruleId);

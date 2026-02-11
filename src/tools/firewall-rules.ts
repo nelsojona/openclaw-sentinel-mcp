@@ -191,42 +191,29 @@ export function registerFirewallTools(
           return errorContent(`Rule not found: ${args.id}`);
         }
 
-        // Build update object
-        const update: Partial<RuleRow> & { id: string } = {
+        // Build update object - must include all fields (undefined for unchanged)
+        const update: Record<string, unknown> = {
           id: args.id,
           updated_at: Date.now(),
+          name: args.name,
+          priority: args.priority,
+          action: args.action,
+          enabled: args.enabled !== undefined ? (args.enabled ? 1 : 0) : undefined,
+          tool_pattern: args.toolPattern,
+          host_pattern: args.hostPattern,
+          agent_pattern: args.agentPattern,
+          argument_pattern: args.argumentPattern,
+          description: args.description,
+          tags: args.tags !== undefined ? JSON.stringify(args.tags) : undefined,
+          // Rate limit and schedule fields are not updateable via this tool
+          rate_limit_max_operations: undefined,
+          rate_limit_window_seconds: undefined,
+          rate_limit_refill_rate: undefined,
+          schedule_days_of_week: undefined,
+          schedule_start_hour: undefined,
+          schedule_end_hour: undefined,
+          schedule_timezone: undefined,
         };
-
-        if (args.name !== undefined) {
-          update.name = args.name;
-        }
-        if (args.priority !== undefined) {
-          update.priority = args.priority;
-        }
-        if (args.action !== undefined) {
-          update.action = args.action;
-        }
-        if (args.enabled !== undefined) {
-          update.enabled = args.enabled ? 1 : 0;
-        }
-        if (args.toolPattern !== undefined) {
-          update.tool_pattern = args.toolPattern;
-        }
-        if (args.hostPattern !== undefined) {
-          update.host_pattern = args.hostPattern;
-        }
-        if (args.agentPattern !== undefined) {
-          update.agent_pattern = args.agentPattern;
-        }
-        if (args.argumentPattern !== undefined) {
-          update.argument_pattern = args.argumentPattern;
-        }
-        if (args.description !== undefined) {
-          update.description = args.description;
-        }
-        if (args.tags !== undefined) {
-          update.tags = JSON.stringify(args.tags);
-        }
 
         statements.updateRule.run(update);
 

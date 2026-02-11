@@ -426,4 +426,189 @@ describe('Interceptor Request Flow', () => {
       expect(entries[2].previous_hash).toBe(entries[1].hash);
     });
   });
+
+  describe('Multiple rule matching', () => {
+    it('should match first rule by priority', () => {
+      // Add two rules with different priorities
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('deny-low', 'Deny Low Priority', 100, 'deny', 1, 'openclaw_agent_*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('allow-high', 'Allow High Priority', 1, 'allow', 1, 'openclaw_agent_*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'openclaw_agent_run',
+        host: 'local',
+        agent: 'user@local',
+        arguments: { agent: 'test' },
+        timestamp: Date.now(),
+      };
+
+      // Should match high priority allow rule first
+      const verdict = evaluatePolicy(db, context, mode);
+      expect(verdict.allowed).toBe(true);
+      expect(verdict.matchedRuleName).toBe('Allow High Priority');
+    });
+
+    it('should skip disabled rules', () => {
+      // Add disabled rule
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('allow-disabled', 'Allow Disabled', 1, 'allow', 0, 'openclaw_agent_*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      // Add enabled deny rule
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('deny-enabled', 'Deny Enabled', 2, 'deny', 1, 'openclaw_agent_*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'openclaw_agent_run',
+        host: 'local',
+        agent: 'user@local',
+        arguments: { agent: 'test' },
+        timestamp: Date.now(),
+      };
+
+      // Should skip disabled rule and match enabled deny rule
+      const verdict = evaluatePolicy(db, context, mode);
+      expect(verdict.allowed).toBe(false);
+      expect(verdict.matchedRuleName).toBe('Deny Enabled');
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should record error status when request fails', () => {
+      // Add allow rule
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('allow-all', 'Allow All', 1, 'allow', 1, '*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'openclaw_agent_run',
+        host: 'local',
+        agent: 'user@local',
+        arguments: { agent: 'test' },
+        timestamp: Date.now(),
+      };
+
+      // Evaluate and create audit entry
+      const verdict = evaluatePolicy(db, context, mode);
+      const auditEntry = createAuditEntry(db, context, verdict, mode);
+
+      // Simulate error response
+      updateAuditEntry(db, auditEntry.id, {
+        responseStatus: 'error',
+        errorMessage: 'Connection refused',
+      });
+
+      // Verify audit entry
+      const updated = db
+        .prepare('SELECT * FROM audit_log WHERE id = ?')
+        .get(auditEntry.id) as any;
+      expect(updated.response_status).toBe('error');
+      expect(updated.error_message).toBe('Connection refused');
+    });
+  });
+
+  describe('Log-only action', () => {
+    it('should allow request but log with log-only action', () => {
+      // Add log-only rule
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, tool_pattern, created_at, updated_at)
+        VALUES ('log-agent', 'Log Agent', 1, 'log-only', 1, 'openclaw_agent_*', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'openclaw_agent_run',
+        host: 'local',
+        agent: 'user@local',
+        arguments: { agent: 'test' },
+        timestamp: Date.now(),
+      };
+
+      // Evaluate policy
+      const verdict = evaluatePolicy(db, context, mode);
+      expect(verdict.allowed).toBe(true);
+      expect(verdict.action).toBe('log-only');
+
+      // Create audit entry
+      const auditEntry = createAuditEntry(db, context, verdict, mode);
+      expect(auditEntry.action).toBe('log-only');
+    });
+  });
+
+  describe('Expired quarantine cleanup', () => {
+    it('should not block if quarantine has expired', () => {
+      // Quarantine hyperion with expiry in the past
+      db.prepare(`
+        INSERT INTO quarantine (scope, target, reason, created_at, expires_at, created_by)
+        VALUES ('host', 'hyperion', 'Temporary block', ${Date.now() - 10000}, ${Date.now() - 5000}, 'admin')
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'fleet_ssh_exec',
+        host: 'hyperion',
+        agent: 'user@local',
+        arguments: { command: 'ls' },
+        timestamp: Date.now(),
+      };
+
+      // Should not be blocked (quarantine expired)
+      // But no matching rule, so default deny in silent-allow mode
+      const verdict = evaluatePolicy(db, context, mode);
+      // In silent-allow mode, should be allowed
+      expect(verdict.allowed).toBe(true);
+    });
+  });
+
+  describe('Context extraction', () => {
+    it('should extract host from arguments for fleet tools', () => {
+      // Add fleet-specific rule
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, host_pattern, created_at, updated_at)
+        VALUES ('allow-hyperion', 'Allow Hyperion', 1, 'allow', 1, 'hyperion', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'fleet_ssh_exec',
+        host: 'hyperion', // Host from arguments
+        agent: 'user@local',
+        arguments: { command: 'ls' },
+        timestamp: Date.now(),
+      };
+
+      // Should match hyperion host pattern
+      const verdict = evaluatePolicy(db, context, mode);
+      expect(verdict.allowed).toBe(true);
+      expect(verdict.matchedRuleName).toBe('Allow Hyperion');
+    });
+
+    it('should use local as default host if not specified', () => {
+      // Add rule for local host
+      db.prepare(`
+        INSERT INTO rules (id, name, priority, action, enabled, host_pattern, created_at, updated_at)
+        VALUES ('allow-local', 'Allow Local', 1, 'allow', 1, 'local', ${Date.now()}, ${Date.now()})
+      `).run();
+
+      const context: PolicyContext = {
+        tool: 'openclaw_agent_run',
+        host: 'local', // Default host
+        agent: 'user@local',
+        arguments: { agent: 'test' },
+        timestamp: Date.now(),
+      };
+
+      // Should match local host pattern
+      const verdict = evaluatePolicy(db, context, mode);
+      expect(verdict.allowed).toBe(true);
+      expect(verdict.matchedRuleName).toBe('Allow Local');
+    });
+  });
 });

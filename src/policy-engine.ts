@@ -381,6 +381,16 @@ export function evaluatePolicy(
         riskFactors,
         requiresConfirmation: false,
       };
+    } else {
+      // Health check in lockdown - allow it
+      return {
+        allowed: true,
+        action: 'allow',
+        reason: 'Health check allowed in lockdown mode',
+        riskScore: 0,
+        riskFactors,
+        requiresConfirmation: false,
+      };
     }
   }
 
