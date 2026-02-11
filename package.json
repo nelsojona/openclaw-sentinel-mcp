@@ -1,0 +1,42 @@
+{
+  "name": "openclaw-sentinel-mcp",
+  "version": "1.0.0",
+  "description": "Network security sentinel for OpenClaw fleet - policy enforcement, anomaly detection, and audit logging",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src",
+    "format": "oxfmt src",
+    "init-db": "node dist/scripts/init-db.js",
+    "verify-audit": "node dist/scripts/verify-audit-chain.js"
+  },
+  "keywords": [
+    "mcp",
+    "openclaw",
+    "security",
+    "firewall",
+    "anomaly-detection",
+    "audit"
+  ],
+  "author": "Jonathan Nelson <688996+nelsojona@users.noreply.github.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^11.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
