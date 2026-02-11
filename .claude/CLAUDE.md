@@ -35,16 +35,71 @@ npm run lint        # Oxlint
 npm run format      # Oxfmt
 ```
 
-### Test Coverage (135 tests)
+### Test Coverage (124 tests)
 
-- Policy engine: 25 tests
-- Audit log: 20 tests
+- Policy engine: 3 tests
+- Audit log: 4 tests
 - Rate limiter: 15 tests
-- Quarantine: 12 tests
-- Anomaly detector: 20 tests
-- Interceptor: 18 tests
+- Quarantine: 16 tests
+- Anomaly detector: 13 tests
+- Interceptor: 19 tests
+- Confirmation tokens: 14 tests
 - Integration: 10 tests
-- Security invariants: 15 tests
+- Integration monitoring: 12 tests
+- Security invariants: 18 tests
+
+## MCP Server Registration (CRITICAL)
+
+**Adding this repo as a git submodule does NOT automatically register the MCP server with Claude Desktop.**
+
+MCP server discovery happens at the Claude Desktop configuration level, not at the git submodule level.
+
+### Registration Steps (Required)
+
+1. **Build the server:**
+   ```bash
+   npm install && npm run build
+   ```
+
+2. **Initialize the database:**
+   ```bash
+   mkdir -p ~/.openclaw-sentinel
+   node dist/scripts/init-db.js ~/.openclaw-sentinel/sentinel.db
+   ```
+
+3. **Add to Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "openclaw-sentinel": {
+         "command": "/opt/homebrew/bin/node",
+         "args": ["/absolute/path/to/openclaw-sentinel-mcp/dist/index.js"],
+         "env": {
+           "SENTINEL_DB_PATH": "/Users/YOUR_USERNAME/.openclaw-sentinel/sentinel.db"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Restart Claude Desktop** (or mcp-menubar app if using that).
+
+### Important Notes
+
+- **Use absolute paths** - No `~` or relative paths in config
+- **SENTINEL_DB_PATH required** - Server won't start without it
+- **mcp-menubar reads Claude Desktop config** - The menubar app discovers MCP servers by reading Claude Desktop's configuration
+- **Registration is manual** - No auto-discovery of git submodules
+
+### Verification
+
+After registration, verify the server is discovered:
+```bash
+# Check if server starts
+SENTINEL_DB_PATH=~/.openclaw-sentinel/sentinel.db node dist/index.js
+# Send: {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+# Expect: 23 tools in response
+```
 
 ## Project Structure
 

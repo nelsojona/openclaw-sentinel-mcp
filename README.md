@@ -81,18 +81,44 @@ Create `~/.openclaw-sentinel/config.json`:
 
 ### MCP Server Setup
 
-Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+**CRITICAL**: This server requires manual registration with Claude Desktop. Adding it as a git submodule does NOT automatically register it.
 
-```json
-{
-  "mcpServers": {
-    "openclaw-sentinel": {
-      "command": "node",
-      "args": ["/path/to/openclaw-sentinel-mcp/dist/index.js"]
-    }
-  }
-}
-```
+**3 Required Steps:**
+
+1. **Build the server:**
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. **Initialize the database:**
+   ```bash
+   mkdir -p ~/.openclaw-sentinel
+   node dist/scripts/init-db.js ~/.openclaw-sentinel/sentinel.db
+   ```
+
+3. **Register in Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "openclaw-sentinel": {
+         "command": "/opt/homebrew/bin/node",
+         "args": ["/absolute/path/to/openclaw-sentinel-mcp/dist/index.js"],
+         "env": {
+           "SENTINEL_DB_PATH": "/Users/YOUR_USERNAME/.openclaw-sentinel/sentinel.db"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Restart Claude Desktop** to pick up the new server configuration.
+
+**Important Notes:**
+- Use absolute paths (not `~` or relative paths)
+- The `SENTINEL_DB_PATH` environment variable is required
+- MCP server discovery happens at the Claude Desktop config level
+- If using mcp-menubar, it reads from Claude Desktop's config
 
 ### Usage
 
