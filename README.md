@@ -20,11 +20,9 @@ Think "Little Snitch + FireWally for AI agents" - a security layer that sits bet
 3. **silent-deny** (Production) - Deny by default, enforce policy, log denials
 4. **lockdown** (Emergency) - Deny all except health checks
 
-### 35 MCP Tools
+### 23 MCP Tools
 
 - **7 Firewall Rules** - Create, update, delete, list, test, import, export
-- **6 Monitoring** - Live feed, stats, top tools, host breakdown, bandwidth, mode control
-- **6 Audit** - Query, tail, stats, verify chain, export, retention
 - **6 Policy** - Status, baseline, thresholds, schedules, agent trust, report
 - **5 Alerts** - List, acknowledge, configure webhooks, test, history
 - **5 Quarantine** - Quarantine/lift host/tool/agent, list active

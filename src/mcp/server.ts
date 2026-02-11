@@ -8,6 +8,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { initializeDatabase, prepareStatements, type SentinelDatabase } from '../database.js';
 import { registerFirewallTools } from '../tools/firewall-rules.js';
 import { registerQuarantineTools } from '../tools/quarantine.js';
+import { registerAlertTools } from '../tools/alerts.js';
+import { registerPolicyTools } from '../tools/policy.js';
 
 export interface SentinelMcpOptions {
   databasePath: string;
@@ -53,8 +55,10 @@ export async function serveMcp(options: SentinelMcpOptions): Promise<void> {
   // Register tool modules
   registerFirewallTools(server, database, statements);
   registerQuarantineTools(server, database, statements);
+  registerAlertTools(server, database, statements);
+  registerPolicyTools(server, database, statements);
 
-  log('Tools registered (7 firewall + 5 quarantine = 12 tools)');
+  log('Tools registered (7 firewall + 5 quarantine + 5 alert + 6 policy = 23 tools)');
 
   // Connect stdio transport
   const transport = new StdioServerTransport();
