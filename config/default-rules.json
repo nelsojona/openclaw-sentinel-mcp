@@ -1,1 +1,81 @@
-[]
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "name": "Allow Health Checks",
+    "priority": 0,
+    "action": "allow",
+    "enabled": true,
+    "toolPattern": "*health*",
+    "description": "Always allow health check operations",
+    "tags": ["system", "health"],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "name": "Allow Status Queries",
+    "priority": 1,
+    "action": "allow",
+    "enabled": true,
+    "toolPattern": "*status*",
+    "description": "Always allow status query operations",
+    "tags": ["system", "status"],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "name": "Block Force Push to Main",
+    "priority": 5,
+    "action": "deny",
+    "enabled": true,
+    "toolPattern": "fleet_ssh_exec",
+    "argumentPattern": "git\\s+push.*--force.*(main|master)",
+    "description": "Prevent destructive force push to main/master branches",
+    "tags": ["security", "git", "destructive"],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "name": "Confirm Recursive Delete",
+    "priority": 5,
+    "action": "ask",
+    "enabled": true,
+    "toolPattern": "fleet_ssh_exec",
+    "argumentPattern": "rm\\s+-[rf]{1,2}",
+    "description": "Require confirmation before recursive delete operations",
+    "tags": ["security", "destructive"],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000005",
+    "name": "Rate Limit Agent Runs",
+    "priority": 10,
+    "action": "allow",
+    "enabled": true,
+    "toolPattern": "openclaw_agent_run",
+    "rateLimit": {
+      "maxOperations": 10,
+      "windowSeconds": 60,
+      "refillRate": 0.16666666666666666
+    },
+    "description": "Limit agent runs to 10 per minute to prevent runaway execution",
+    "tags": ["rate-limit", "agent"],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000006",
+    "name": "Log Fleet Operations",
+    "priority": 1000,
+    "action": "log-only",
+    "enabled": true,
+    "toolPattern": "fleet_*",
+    "description": "Log all fleet SSH operations for audit trail",
+    "tags": ["audit", "fleet"],
+    "createdAt": 0,
+    "updatedAt": 0
+  }
+]

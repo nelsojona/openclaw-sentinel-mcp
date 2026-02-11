@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sentinel Rule Schema",
+  "description": "JSON schema for OpenClaw Sentinel firewall rules",
+  "type": "object",
+  "required": ["id", "name", "priority", "action", "enabled", "createdAt", "updatedAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique rule identifier (UUID)",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable rule name",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "priority": {
+      "type": "integer",
+      "description": "Rule priority (lower number = higher priority)",
+      "minimum": -10000,
+      "maximum": 10000
+    },
+    "action": {
+      "type": "string",
+      "description": "Action to take when rule matches",
+      "enum": ["allow", "deny", "ask", "log-only"]
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the rule is active"
+    },
+    "toolPattern": {
+      "type": "string",
+      "description": "Glob pattern for tool names (e.g., 'fleet_*', 'openclaw_agent_*')",
+      "maxLength": 255
+    },
+    "hostPattern": {
+      "type": "string",
+      "description": "Glob pattern for host identifiers (e.g., 'hyperion', '*')",
+      "maxLength": 255
+    },
+    "agentPattern": {
+      "type": "string",
+      "description": "Glob pattern for agent identifiers (e.g., 'user@*', '*')",
+      "maxLength": 255
+    },
+    "argumentPattern": {
+      "type": "string",
+      "description": "Regex pattern for argument matching",
+      "maxLength": 1000
+    },
+    "rateLimit": {
+      "type": "object",
+      "description": "Rate limiting configuration",
+      "required": ["maxOperations", "windowSeconds", "refillRate"],
+      "properties": {
+        "maxOperations": {
+          "type": "integer",
+          "description": "Maximum number of operations allowed",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "windowSeconds": {
+          "type": "integer",
+          "description": "Time window in seconds",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "refillRate": {
+          "type": "number",
+          "description": "Token refill rate per second",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "additionalProperties": false
+    },
+    "schedule": {
+      "type": "object",
+      "description": "Time-of-day schedule for rule activation",
+      "properties": {
+        "daysOfWeek": {
+          "type": "array",
+          "description": "Days of week (0=Sunday, 6=Saturday)",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true
+        },
+        "startHour": {
+          "type": "integer",
+          "description": "Start hour (0-23)",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "endHour": {
+          "type": "integer",
+          "description": "End hour (0-23)",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone (e.g., 'America/New_York')",
+          "maxLength": 50
+        }
+      },
+      "additionalProperties": false
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the rule",
+      "maxLength": 1000
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorization",
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "createdAt": {
+      "type": "integer",
+      "description": "Creation timestamp (Unix milliseconds)",
+      "minimum": 0
+    },
+    "updatedAt": {
+      "type": "integer",
+      "description": "Last update timestamp (Unix milliseconds)",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}
